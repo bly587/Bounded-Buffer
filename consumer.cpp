@@ -22,9 +22,11 @@ using namespace std;
      char payload[PAYLOAD_SIZE];  /* random generated data */
 } item;
 
+//main method
 int main(int argc, char const *argv[]) {
   //check that argv has 1 argument
   if(argc != 2){
+    //if not 1 arguement then throw error
     cout << "Not proper number of arguements" << endl;
     return 1;
   }
@@ -46,24 +48,33 @@ int main(int argc, char const *argv[]) {
   /* memory map the shared memory object */
   ptr = mmap(0, MMAP_SIZE, PROT_READ, MAP_SHARED, shm_fd, 0);
 
+  //create in, out, and buffer
   item   buffer[BUFFER_SIZE];
   int    in  = 0;
   int    out = 0;
 
+  //create item object that we read in
   item next_consumed;
+  //counter to make sure buffer is read in order
   int num_counter = 0;
-  //buffer = (unsigned char *)ptr;
 
-  //cout << "This is the value we got: " +(char*)buffer << endl;
+  cout << "PTR: " << (char*)ptr << endl;
+  char* hi = (char *)ptr;
+  //buffer = (item *)ptr;
 
+  cout << "This is the value we got: " << hi << endl;
 
+  //while loop
   while (true) {
       while (in == out){
         sleep(1); /* do nothing but sleep for 1 second */
         in++;
       }
+      //item to look at is from shared buffer
       next_consumed = buffer[out];
 
+      cout << "Item number: " << next_consumed.item_no << endl;
+      cout << "Counter: " <<num_counter << endl;
       //check for no skipped buffers
       if (next_consumed.item_no - num_counter != 1){
         perror("Reading out of order");
@@ -72,17 +83,16 @@ int main(int argc, char const *argv[]) {
 
       //run checksum again to check if they are equal
       int new_check = ip_checksum(next_consumed.payload, PAYLOAD_SIZE);
+      //compare checksum values
       if(new_check == next_consumed.cksum){
         cout << "Error: Checksums aren't the same" << endl;
         return 1;
       }
 
+      //increment out value
       out = (out + 1) % BUFFER_SIZE;
 
-      /* consume the item in next_consumed */
-      /* 1. Check for no skipped buffers (item_no is contiguous) */
-      /* 2. Verify the calculated checksum matches what is stored in
-            next_consumed */
+      //incrememnt num_counter to make sure values are in order
       num_counter++;
   }
   return 0;
